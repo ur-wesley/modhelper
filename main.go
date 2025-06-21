@@ -10,11 +10,14 @@ import (
 	"time"
 
 	"github.com/ur-wesley/modhelper/internal/config"
+	"github.com/ur-wesley/modhelper/internal/updater"
 	"github.com/ur-wesley/modhelper/ui"
 )
 
 func main() {
 	setupFileLogging()
+
+	updater.CleanupUpdateFiles()
 
 	adminMode := flag.Bool("admin", false, "Run in admin mode for configuration")
 	flag.Parse()

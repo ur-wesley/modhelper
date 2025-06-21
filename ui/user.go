@@ -21,6 +21,7 @@ import (
 	"github.com/ur-wesley/modhelper/internal/profile"
 	"github.com/ur-wesley/modhelper/internal/r2modman"
 	"github.com/ur-wesley/modhelper/internal/steam"
+	"github.com/ur-wesley/modhelper/internal/updater"
 )
 
 type GameListItem struct {
@@ -68,6 +69,12 @@ func ShowUserInterface(cfg *internal.Config) {
 	})
 	infoButton.Resize(fyne.NewSize(32, 32))
 
+	updateButton := widget.NewButtonWithIcon("", theme.DownloadIcon(), func() {
+		showUpdateDialog(w, messages)
+	})
+	updateButton.Resize(fyne.NewSize(32, 32))
+	updateButton.Hide()
+
 	searchEntry := widget.NewEntry()
 	searchEntry.SetPlaceHolder(messages.SearchGames)
 
@@ -97,7 +104,7 @@ func ShowUserInterface(cfg *internal.Config) {
 
 	topSection := container.NewBorder(
 		nil, nil,
-		nil, infoButton,
+		nil, container.NewHBox(updateButton, infoButton),
 		searchEntry,
 	)
 
@@ -110,6 +117,18 @@ func ShowUserInterface(cfg *internal.Config) {
 
 	var steamApps map[string]steam.App
 	var gameRows []*fyne.Container
+
+	go func() {
+		time.Sleep(2 * time.Second)
+		checkForUpdates(updateButton, messages)
+
+		ticker := time.NewTicker(4 * time.Hour)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			checkForUpdates(updateButton, messages)
+		}
+	}()
 
 	go func() {
 		if _, err := r2modman.Find(); err == nil {
@@ -226,18 +245,56 @@ func showInfoDialog(parent fyne.Window, messages internal.Messages) {
 	infoLabel := widget.NewRichTextFromMarkdown(messages.InfoContent)
 	infoLabel.Wrapping = fyne.TextWrapWord
 
+	updateCheckButton := widget.NewButtonWithIcon("Nach Updates suchen", theme.ViewRefreshIcon(), func() {
+	})
+
+	updateCheckButton.OnTapped = func() {
+		go func() {
+			fyne.Do(func() {
+				updateCheckButton.SetText(messages.CheckingUpdates)
+				updateCheckButton.Disable()
+			})
+
+			updateInfo, err := updater.CheckForUpdates()
+
+			fyne.Do(func() {
+				updateCheckButton.SetText("Nach Updates suchen")
+				updateCheckButton.Enable()
+
+				if err != nil {
+					dialog.ShowError(fmt.Errorf("Update-Prüfung fehlgeschlagen: %v", err), parent)
+					return
+				}
+
+				if updateInfo.Available {
+					dialog.ShowInformation(messages.UpdateAvailable,
+						fmt.Sprintf("Neue Version verfügbar: %s", updateInfo.LatestVersion), parent)
+				} else {
+					dialog.ShowInformation(messages.NoUpdatesAvailable,
+						fmt.Sprintf("Sie verwenden bereits die neueste Version (%s)", updateInfo.CurrentVersion), parent)
+				}
+			})
+		}()
+	}
+
 	infoScroll := container.NewScroll(infoLabel)
 
 	windowWidth, windowHeight := GetWindowDimensions()
 	dialogWidth := windowWidth - 50
 	dialogHeight := windowHeight - 100
 
-	infoScroll.Resize(fyne.NewSize(dialogWidth-50, dialogHeight-100))
+	infoScroll.Resize(fyne.NewSize(dialogWidth-50, dialogHeight-150))
+
+	content := container.NewVBox(
+		infoScroll,
+		widget.NewSeparator(),
+		container.NewCenter(updateCheckButton),
+	)
 
 	infoDialog := dialog.NewCustom(
 		fmt.Sprintf("ℹ️ %s", messages.InfoTitle),
 		messages.Close,
-		infoScroll,
+		content,
 		parent,
 	)
 
@@ -466,5 +523,121 @@ func loadGameIcon(game internal.Game, headerImg *canvas.Image, imageCache map[st
 			headerImg.Refresh()
 			log.Printf("Updated image for %s", game.Name)
 		})
+	}()
+}
+
+func checkForUpdates(updateButton *widget.Button, messages internal.Messages) {
+	go func() {
+		updateInfo, err := updater.CheckForUpdates()
+		if err != nil {
+			log.Printf("Failed to check for updates: %v", err)
+			return
+		}
+
+		if updateInfo.Available {
+			fyne.Do(func() {
+				updateButton.SetText(messages.UpdateAvailable)
+				updateButton.Show()
+			})
+		}
+	}()
+}
+
+func showUpdateDialog(parent fyne.Window, messages internal.Messages) {
+	updateInfo, err := updater.CheckForUpdates()
+	if err != nil {
+		dialog.ShowError(err, parent)
+		return
+	}
+
+	if !updateInfo.Available {
+		dialog.ShowInformation(messages.NoUpdatesAvailable,
+			fmt.Sprintf("Sie verwenden bereits die neueste Version (%s)", updateInfo.CurrentVersion), parent)
+		return
+	}
+
+	content := fmt.Sprintf(`**Neue Version verfügbar!**
+
+**Aktuelle Version:** %s
+**Neue Version:** %s
+
+**Änderungen:**
+%s
+
+Möchten Sie jetzt aktualisieren?`,
+		updateInfo.CurrentVersion,
+		updateInfo.LatestVersion,
+		updateInfo.ReleaseNotes)
+
+	updateLabel := widget.NewRichTextFromMarkdown(content)
+	updateLabel.Wrapping = fyne.TextWrapWord
+
+	updateScroll := container.NewScroll(updateLabel)
+	updateScroll.Resize(fyne.NewSize(500, 300))
+
+	updateDialog := dialog.NewCustomConfirm(
+		messages.UpdateDialogTitle,
+		messages.UpdateNow,
+		messages.UpdateLater,
+		updateScroll,
+		func(update bool) {
+			if update {
+				performUpdate(parent, messages, updateInfo)
+			}
+		},
+		parent,
+	)
+
+	updateDialog.Resize(fyne.NewSize(550, 400))
+	updateDialog.Show()
+}
+
+func performUpdate(parent fyne.Window, messages internal.Messages, updateInfo *updater.UpdateInfo) {
+	progressBar := widget.NewProgressBar()
+	progressLabel := widget.NewLabel(messages.UpdateDownloading)
+
+	progressContent := container.NewVBox(
+		progressLabel,
+		progressBar,
+	)
+
+	progressDialog := dialog.NewCustomWithoutButtons(
+		messages.UpdateDialogTitle,
+		progressContent,
+		parent,
+	)
+	progressDialog.Show()
+
+	go func() {
+		tempFile, err := updater.DownloadUpdate(updateInfo.DownloadURL, func(downloaded, total int64) {
+			if total > 0 {
+				progress := float64(downloaded) / float64(total)
+				fyne.Do(func() {
+					progressBar.SetValue(progress)
+					progressLabel.SetText(fmt.Sprintf("%s (%d%%)",
+						messages.UpdateDownloading, int(progress*100)))
+				})
+			}
+		})
+
+		if err != nil {
+			fyne.Do(func() {
+				progressDialog.Hide()
+				dialog.ShowError(fmt.Errorf("%s: %v", messages.UpdateError, err), parent)
+			})
+			return
+		}
+
+		fyne.Do(func() {
+			progressBar.SetValue(1.0)
+			progressLabel.SetText(messages.UpdateInstalling)
+		})
+
+		if err := updater.ApplyUpdate(tempFile); err != nil {
+			fyne.Do(func() {
+				progressDialog.Hide()
+				dialog.ShowError(fmt.Errorf("%s: %v", messages.UpdateError, err), parent)
+			})
+		}
 	}()
 }

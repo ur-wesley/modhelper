@@ -4,7 +4,7 @@ const (
 	WindowWidth  = 600
 	WindowHeight = 400
 	AppName      = "Wesleys Profiles"
-	AppVersion   = "v1.0.16"
+	AppVersion   = "v1.1.0"
 	AppID        = "fyi.wesley.modhelper"
 )
 

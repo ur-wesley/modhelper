@@ -75,7 +75,6 @@ jobs:
        ### Requirements
        - Windows 10/11
        - Steam installed
-       - r2modman (recommended)
 
        ### Features
        - Automatic profile installation from manifest
@@ -88,7 +87,7 @@ jobs:
 
    - name: Upload artifact for manual testing
      if: steps.get_version.outputs.is_release == 'false'
-     uses: actions/upload-artifact@v3
+     uses: actions/upload-artifact@v4
      with:
       name: ModHelper-${{ steps.get_version.outputs.version }}-windows
       path: ModHelper.exe

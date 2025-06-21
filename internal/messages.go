@@ -50,6 +50,20 @@ type Messages struct {
 	SteamNotFound    string
 	R2ModmanNotFound string
 	NetworkError     string
+
+	UpdateAvailable     string
+	UpdateButton        string
+	UpdateDownloading   string
+	UpdateInstalling    string
+	UpdateError         string
+	UpdateSuccess       string
+	UpdateRestart       string
+	CheckingUpdates     string
+	NoUpdatesAvailable  string
+	UpdateDialogTitle   string
+	UpdateDialogMessage string
+	UpdateNow           string
+	UpdateLater         string
 }
 
 func German() Messages {
@@ -129,5 +143,19 @@ richtige Verzeichnisstruktur installiert.`,
 		SteamNotFound:    "Steam nicht gefunden",
 		R2ModmanNotFound: "r2modman nicht gefunden",
 		NetworkError:     "Netzwerkfehler",
+
+		UpdateAvailable:     "Update verfügbar",
+		UpdateButton:        "Aktualisieren",
+		UpdateDownloading:   "Lade Update herunter...",
+		UpdateInstalling:    "Installiere Update...",
+		UpdateError:         "Update fehlgeschlagen",
+		UpdateSuccess:       "Update erfolgreich",
+		UpdateRestart:       "Anwendung wird neu gestartet...",
+		CheckingUpdates:     "Prüfe Updates...",
+		NoUpdatesAvailable:  "Keine Updates verfügbar",
+		UpdateDialogTitle:   "Update verfügbar",
+		UpdateDialogMessage: "Eine neue Version ist verfügbar. Jetzt aktualisieren?",
+		UpdateNow:           "Jetzt aktualisieren",
+		UpdateLater:         "Später",
 	}
 }

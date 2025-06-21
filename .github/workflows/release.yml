@@ -1,0 +1,94 @@
+name: Build and Release
+
+on:
+ push:
+  tags:
+   - "v*"
+ workflow_dispatch:
+
+jobs:
+ build:
+  runs-on: windows-latest
+
+  steps:
+   - name: Checkout code
+     uses: actions/checkout@v4
+
+   - name: Set up Go
+     uses: actions/setup-go@v4
+     with:
+      go-version: "1.24"
+
+   - name: Install Fyne
+     run: go install fyne.io/fyne/v2/cmd/fyne@latest
+
+   - name: Install dependencies
+     run: go mod download
+
+   - name: Build Windows executable
+     run: fyne package -os windows -icon icon.png
+
+   - name: Get version from tag
+     id: get_version
+     shell: bash
+     run: |
+      if [[ $GITHUB_REF == refs/tags/* ]]; then
+        echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        echo "is_release=true" >> $GITHUB_OUTPUT
+      else
+        echo "version=dev-$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+        echo "is_release=false" >> $GITHUB_OUTPUT
+      fi
+
+   - name: Rename executable
+     shell: bash
+     run: |
+      if [ -f "modhelper.exe" ]; then
+        mv modhelper.exe "ModHelper.exe"
+      else
+        echo "Error: modhelper.exe not found"
+        ls -la
+        exit 1
+      fi
+
+   - name: Create Release
+     if: steps.get_version.outputs.is_release == 'true'
+     uses: softprops/action-gh-release@v1
+     with:
+      tag_name: ${{ steps.get_version.outputs.version }}
+      name: Release ${{ steps.get_version.outputs.version }}
+      draft: false
+      prerelease: false
+      files: |
+       ModHelper.exe
+      body: |
+       ## R2ModMan Profile Sharer ${{ steps.get_version.outputs.version }}
+
+       ### Downloads
+       - **Windows**: ModHelper.exe
+
+       ### Installation
+       1. Download the Windows executable
+       2. Run the .exe file (no installation required)
+       3. The app will create profiles compatible with r2modman
+
+       ### Requirements
+       - Windows 10/11
+       - Steam installed
+       - r2modman (recommended)
+
+       ### Features
+       - Automatic profile installation from manifest
+       - Version checking and updates
+       - Game process monitoring
+       - German language interface
+       - Steam integration
+     env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+   - name: Upload artifact for manual testing
+     if: steps.get_version.outputs.is_release == 'false'
+     uses: actions/upload-artifact@v3
+     with:
+      name: ModHelper-${{ steps.get_version.outputs.version }}-windows
+      path: ModHelper.exe

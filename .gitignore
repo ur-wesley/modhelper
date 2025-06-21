@@ -1,0 +1,25 @@
+# Logs
+logs/
+*.log
+
+# Binaries
+*.exe
+*.dll
+
+# Configuration
+config.json
+
+# Temporary files
+*.tmp
+*.temp
+
+# IDE
+.vscode/
+.idea/
+
+# Go
+vendor/
+*.mod.sum.backup
+
+# Test files
+test_*.r2z

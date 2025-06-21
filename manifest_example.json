@@ -1,0 +1,31 @@
+[
+  {
+    "name": "Lethal Company",
+    "id": "1966720",
+    "icon": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1966720/header.jpg",
+    "profileName": "Lethal Company",
+    "url": "",
+    "launchArgs": "--doorstop-enable true --doorstop-target \"${profileLoc}/${profileName}/BepInEx/core/BepInEx.Preloader.dll\"",
+    "community": "lethal-company",
+    "executableNames": [
+      "Lethal Company.exe",
+      "LethalCompany.exe"
+    ],
+    "version": "1.0.0"
+  },
+  {
+    "name": "R.E.P.O.",
+    "id": "3241660",
+    "icon": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3241660/1ea445e044a2d5b09cfa8291350b63ebed6e5741/header.jpg",
+    "profileName": "R.E.P.O.",
+    "url": "https://drive.google.com/uc?export=download&id=1N968BQrlvZY5D9zJ509Ph8BjLNO44g-y",
+    "launchArgs": "--doorstop-enable true --doorstop-target \"${profileLoc}/${profileName}/BepInEx/core/BepInEx.Preloader.dll\"",
+    "community": "repo",
+    "executableNames": [
+      "R.E.P.O.exe",
+      "REPO.exe",
+      "repo.exe"
+    ],
+    "version": "2.1.0"
+  }
+]

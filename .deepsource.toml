@@ -3,3 +3,7 @@ version = 1
 [[analyzers]]
 name = "go"
 enabled = true
+
+[[analyzers]]
+name = "test-coverage"
+enabled = true
